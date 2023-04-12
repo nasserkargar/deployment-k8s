@@ -1,0 +1,18 @@
+stages:
+  - deploy
+before_script:
+  - 'command -v ssh-agent >/dev/null || ( apk add --update openssh )' 
+  - eval $(ssh-agent -s)
+  - echo "$ID_RSA" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - ssh-keyscan $SERVER_IP >> ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+deploy:
+  stage: deploy
+  tags:
+    - shell
+  script:
+    - scp nginx-deployment.yml $SERVER_USER@$SERVER_IP:/home/deployer
+    - ssh $SERVER_USER@$SERVER_IP "kubectl apply -f nginx-deployment.yml || true"
+    - ssh $SERVER_USER@$SERVER_IP "kubectl get pods"
